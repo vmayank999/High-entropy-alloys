@@ -1,0 +1,56 @@
+units 		metal
+dimension 	3 
+boundary 	p p p
+atom_style 	atomic
+
+#creating the simulation box
+lattice 	fcc 3.556 # From the paper D. Farkas et al., J. Mater. Res., 33, 3218, 2018
+region 		box block 0 7 0 7 0 7
+create_box 	5 box
+
+create_atoms 	1 region box
+
+set 		type 1 type/fraction 2 0.2 324261
+set 		type 1 type/fraction 3 0.25 84326 
+set 		type 1 type/fraction 4 0.3 654320
+set 		type 1 type/fraction 5 0.5 121098
+
+mass		1 55.8
+mass		2 58.7
+mass		3 52.0
+mass		4 59.0
+mass		5 63.0
+ 
+pair_style 	eam/alloy 
+pair_coeff 	* * hea.eam.alloy Fe Ni Cr Co Cu
+
+minimize 	1.0e-4 1.0e-6 10000 10000
+
+write_data	minimized_structure.data
+
+velocity	all create 300 234687
+
+neighbor	2.0 bin
+neigh_modify	every 10 delay 0 check no
+
+timestep	0.002
+thermo		1000
+
+dump		1 all atom 2000 dump_NVT_NPT.atom
+
+fix		1 all nvt temp 300 300 0.2
+run		10000
+unfix		1
+ 
+fix		1 all npt temp 300 300 0.2 iso 1.013 1.013 0.4
+run		10000
+unfix		1
+
+write_data	NVT_NPT.data
+
+
+
+
+
+
+

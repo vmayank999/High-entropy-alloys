@@ -1,0 +1,45 @@
+units 		metal
+dimension 	3 
+boundary 	p p p
+atom_style 	atomic
+
+read_data	NVT_NPT.data
+
+mass		1 55.8
+mass		2 58.7
+mass		3 52.0
+mass		4 59.0
+mass		5 63.0
+ 
+pair_style 	eam/alloy 
+pair_coeff 	* * hea.eam.alloy Fe Ni Cr Co Cu
+
+# Store initial cell length for strain calculations
+variable 	tmp equal "lz"
+variable 	L0 equal ${tmp}
+print 		"Initial Length, L0: ${L0}"
+
+# Compute per-atom quantities
+compute		allke all ke/atom	
+compute 	allpe all pe/atom
+compute 	stress all stress/atom NULL
+
+# Perform tensile tests
+reset_timestep 	0
+thermo		1000
+fix		1 all npt temp 300.0 300.0 0.1 x 0.0 0.0 0.5 y 0.0 0.0 0.5 drag 0.1 #pressure in bar
+fix		strain all deform 1 z erate -0.006  
+dump            deform all custom 1000 deform.dump id type x y z c_allpe c_allke c_stress[1] c_stress[2] c_stress[3] c_stress[4] c_stress[5] c_stress[6]
+
+# Output strain and stress info to file
+# for units metal, pressure is in [bars] = 100 [kPa] = 1/10000 [GPa]
+
+variable	stress equal "-pzz/10000"
+variable 	strain equal "(lz - v_L0)/v_L0"
+
+fix 		3 all ave/time 20 10 200 v_strain v_stress file stress_strain.txt 
+
+run		30000
+undump		deform
+write_data      deformed_structure.data
+
